@@ -1,0 +1,45 @@
+{
+    "name": "sbrimon10/laravel-installer-wizard",
+    "description": "Drop-in Laravel installer wizard: requirements, .env setup, database + admin, optional license.",
+    "keywords": ["laravel", "installer", "wizard", "setup", "codecanyon"],
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "SB Rimon",
+            "email": "sbrimon10@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/contracts": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0",
+        "pestphp/pest": "^2.0|^3.0",
+        "laravel/boost": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sbrimon10\\InstallerWizard\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Sbrimon10\\InstallerWizard\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Sbrimon10\\InstallerWizard\\InstallerWizardServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "vendor/bin/pest"
+    }
+}
