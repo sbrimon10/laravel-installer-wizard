@@ -23,4 +23,8 @@ php artisan vendor:publish --tag=installer-wizard-views
 
 Disable after install: `INSTALLER_ENABLED=false`.
 
+## Wizard
+
+1. `/install` welcome → 2. `/install/requirements` → 3. `/install/environment` (writes `.env`, PDO-tests DB first) → 4. DB + admin (next) → 5. `/install/complete`.
+
 See `docs/` + `CHANGELOG.md`. Full docs site: see `../WEBSITE_PLAN.md`.

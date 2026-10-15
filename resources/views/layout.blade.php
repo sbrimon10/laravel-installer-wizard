@@ -14,8 +14,12 @@
     <div class="flex gap-2 text-xs mb-6">
       <a href="{{ route('installer.welcome') }}" class="px-3 py-1 rounded-full bg-slate-900 text-white">1. Welcome</a>
       <a href="{{ route('installer.requirements') }}" class="px-3 py-1 rounded-full bg-slate-200">2. Requirements</a>
-      <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-400">3. Env · 4. DB · 5. Done</span>
+      <a href="{{ route('installer.environment') }}" class="px-3 py-1 rounded-full bg-slate-200">3. Env</a>
+      <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-400">4. DB · 5. Done</span>
     </div>
+    @if(session('status'))
+    <div class="mb-4 text-sm bg-green-50 text-green-800 p-3 rounded-lg">{{ session('status') }}</div>
+    @endif
     @yield('content')
   </div>
   <p class="text-center text-xs text-slate-400 mt-4">Delete or protect /install after <code>storage/installer.lock</code> exists.</p>
