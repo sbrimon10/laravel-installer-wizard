@@ -11,7 +11,7 @@
 </div>
 
 <h3 class="font-semibold text-sm mb-2">Extensions</h3>
-<ul class="text-sm mb-4">
+<ul class="text-sm mb-4 grid grid-cols-1 sm:grid-cols-2 gap-1">
 @foreach($checks['extensions'] as $ext => $ok)
   <li class="{{ $ok ? 'text-green-700' : 'text-red-700' }}">{{ $ok ? '✓' : '✗' }} {{ $ext }}</li>
 @endforeach
@@ -26,12 +26,12 @@
 @endforeach
 </ul>
 
-<div class="flex gap-3">
-  <a href="{{ route('installer.welcome') }}" class="px-4 py-2 rounded-lg bg-slate-200">← Back</a>
+<div class="flex flex-col sm:flex-row gap-3">
+  <a href="{{ route('installer.welcome') }}" class="px-4 py-2 rounded-lg bg-slate-200 text-center">← Back</a>
   @if($checks['passes'])
-    <span class="px-4 py-2 rounded-lg bg-green-600 text-white">All good — Env step coming next</span>
+    <a href="{{ route('installer.environment') }}" class="px-4 py-2 rounded-lg bg-green-600 text-white text-center">All good — continue to Env →</a>
   @else
-    <span class="px-4 py-2 rounded-lg bg-red-600 text-white">Fix items above, then refresh</span>
+    <a href="{{ route('installer.requirements') }}" class="px-4 py-2 rounded-lg bg-red-600 text-white text-center">Fix items above, then refresh</a>
   @endif
 </div>
 @endsection

@@ -18,6 +18,7 @@ it('loads environment page', function () {
 });
 
 it('loads database, admin and complete pages', function () {
+    $this->get('/install/requirements')->assertOk();
     $this->get('/install/database')->assertOk();
     $this->get('/install/admin')->assertOk();
     $this->get('/install/complete')->assertOk();

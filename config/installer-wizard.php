@@ -9,6 +9,13 @@ return [
     */
     'enabled' => env('INSTALLER_ENABLED', true),
 
+    /*
+    | Branding shown on every wizard page. The package credit line
+    | (sbrimon10/laravel-installer-wizard) always stays visible.
+    */
+    'title' => env('INSTALLER_TITLE', 'Laravel Installer Wizard'),
+    'description' => env('INSTALLER_DESCRIPTION', 'Set up your application in a few guided steps.'),
+
     'route_prefix' => 'install',
 
     /*
