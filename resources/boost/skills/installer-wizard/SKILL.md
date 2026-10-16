@@ -8,5 +8,6 @@ Use when working with `sbrimon10/laravel-installer-wizard`.
 - Opt-in `RedirectToInstaller` for host web group sends `redirect_paths` (default `/`) to wizard until installed.
 - Env: `EnvManager::get/update` preserves `.env` formatting, de-duplicates keys (SQLite hides host/port/user/pass via JS, bare names normalized to absolute + touched); `DatabaseManager::testConnection` uses framework connectors on a purged probe + `migrate($fresh)` via Artisan (seed_class wins, else run_seed; time limit lifted); `AdminManager::create` uses `admin_model` config, requires users table. Wizard forces file session/cache while unlocked so broken DB never 500s it.
 - Order enforced: `EnsureStepOrder` (`installer.ensure-order:{step}`) + `Installer::markStep/passed/firstIncomplete`; finish runs `post_commands` + `storage:link` then locks.
+- JSON API (vanilla-JS UI, no reloads): `POST /install/api/test-connection` (probe only), `GET /install/api/status` (restart recovery); env save accepts JSON with `{ok, redirect}`.
 - Commands: `wizard:check` (audit, exit 1 on fail), `wizard:migrate [--fresh]` (timeout-safe CLI path), `wizard:reset [--force]` (dev only).
 - Branding via `title`/`description` config; credit line stays. Docs source of truth: package `docs/*.md`. Never author docs in website admin.

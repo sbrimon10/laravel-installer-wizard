@@ -64,3 +64,21 @@ it('accepts sqlite memory through the framework connector', function () {
 it('skips license step when disabled', function () {
     $this->get('/install/license')->assertRedirect('/install/environment');
 });
+
+it('probes connections over JSON without writing .env', function () {
+    $this->withSession(['installer.passed' => ['welcome' => true, 'requirements' => true]])
+        ->postJson('/install/api/test-connection', [
+            'APP_NAME' => 'Test',
+            'APP_URL' => 'http://localhost',
+            'DB_CONNECTION' => 'sqlite',
+            'DB_DATABASE' => ':memory:',
+        ])
+        ->assertOk()
+        ->assertJson(['ok' => true]);
+});
+
+it('reports installer status as JSON', function () {
+    $this->getJson('/install/api/status')
+        ->assertOk()
+        ->assertJson(['installed' => false]);
+});

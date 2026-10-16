@@ -16,7 +16,7 @@
 </div>
 @endif
 
-<form method="POST" action="{{ route('installer.environment.save') }}" class="space-y-4">
+<form id="env-form" method="POST" action="{{ route('installer.environment.save') }}" class="space-y-4">
   @csrf
 
   <div class="grid grid-cols-1 gap-4">
@@ -93,9 +93,135 @@
 })();
 </script>
 
-  <div class="flex gap-3 pt-2">
-    <a href="{{ route('installer.requirements') }}" class="px-4 py-2 rounded-lg bg-slate-200 text-sm">← Back</a>
-    <button type="submit" class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm">Test connection & save →</button>
+  <div id="live-result" class="hidden text-sm p-3 rounded-lg"></div>
+
+  <div class="flex flex-col sm:flex-row gap-3 pt-2">
+    <a href="{{ route('installer.requirements') }}" class="px-4 py-2 rounded-lg bg-slate-200 text-sm text-center">← Back</a>
+    <button type="button" id="test-btn" class="px-4 py-2 rounded-lg bg-slate-600 text-white text-sm">Test connection</button>
+    <button type="submit" id="save-btn" class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm">Save & continue →</button>
   </div>
 </form>
+
+<div id="toast-box" class="fixed top-4 right-4 space-y-2 z-50 max-w-xs w-[calc(100%-2rem)]"></div>
+
+<script>
+(function () {
+  var form = document.getElementById('env-form');
+  var testBtn = document.getElementById('test-btn');
+  var saveBtn = document.getElementById('save-btn');
+  var result = document.getElementById('live-result');
+  var box = document.getElementById('toast-box');
+  var token = form.querySelector('input[name="_token"]').value;
+  var saveUrl = form.action;
+  var testUrl = @json(route('installer.api.test-connection'));
+  var statusUrl = @json(route('installer.api.status'));
+
+  function toast(message, kind) {
+    var colors = { ok: 'bg-green-600', err: 'bg-red-600', wait: 'bg-amber-500' };
+    var el = document.createElement('div');
+    el.className = 'text-white text-sm px-4 py-2 rounded-lg shadow ' + (colors[kind] || colors.ok);
+    el.textContent = message;
+    box.appendChild(el);
+    setTimeout(function () { el.remove(); }, kind === 'wait' ? 12000 : 6000);
+    return el;
+  }
+
+  function showResult(ok, message) {
+    result.classList.remove('hidden', 'bg-green-50', 'text-green-800', 'bg-red-50', 'text-red-800');
+    result.classList.add(ok ? 'bg-green-50' : 'bg-red-50', ok ? 'text-green-800' : 'text-red-800');
+    result.textContent = message;
+  }
+
+  function payload() {
+    var data = {};
+    new FormData(form).forEach(function (v, k) { data[k] = v; });
+    return data;
+  }
+
+  function postJson(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      return res.json().then(function (json) { return { http: res.status, json: json }; });
+    });
+  }
+
+  function setBusy(btn, busy, label) {
+    btn.disabled = busy;
+    btn.dataset.label = btn.dataset.label || btn.textContent;
+    btn.textContent = busy ? (label || 'Working…') : btn.dataset.label;
+    btn.classList.toggle('opacity-60', busy);
+  }
+
+  // Live probe: no .env write, no restart, no reload.
+  testBtn.addEventListener('click', function () {
+    setBusy(testBtn, true, 'Testing…');
+    postJson(testUrl, payload()).then(function (out) {
+      setBusy(testBtn, false);
+      if (out.http === 200 && out.json.ok) {
+        showResult(true, '✓ ' + out.json.message);
+        toast('Connection works.', 'ok');
+      } else if (out.json.errors) {
+        showResult(false, '✗ ' + Object.values(out.json.errors).flat().join(' '));
+        toast('Fix the highlighted fields.', 'err');
+      } else {
+        showResult(false, '✗ ' + (out.json.message || 'Connection failed.'));
+        toast(out.json.message || 'Connection failed.', 'err');
+      }
+    }).catch(function () {
+      setBusy(testBtn, false);
+      showResult(false, '✗ Could not reach the server.');
+      toast('Could not reach the server.', 'err');
+    });
+  });
+
+  // Save via fetch. If the dev server restarts on .env write and drops the
+  // connection, poll /api/status until it is back, then continue.
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    setBusy(saveBtn, true, 'Saving…');
+    postJson(saveUrl, payload()).then(function (out) {
+      if (out.http === 200 && out.json.ok) {
+        toast(out.json.message, 'ok');
+        window.location.href = out.json.redirect;
+      } else if (out.json.errors) {
+        setBusy(saveBtn, false);
+        showResult(false, '✗ ' + Object.values(out.json.errors).flat().join(' '));
+        toast('Fix the highlighted fields.', 'err');
+      } else {
+        setBusy(saveBtn, false);
+        showResult(false, '✗ ' + (out.json.message || 'Save failed.'));
+        toast(out.json.message || 'Save failed.', 'err');
+      }
+    }).catch(function () {
+      waitForServer(0);
+    });
+  });
+
+  function waitForServer(tries) {
+    var note = toast('Saving… server restarting, waiting…', 'wait');
+    (function poll(n) {
+      fetch(statusUrl, { headers: { 'Accept': 'application/json' } }).then(function (res) {
+        if (!res.ok) throw 0;
+        return res.json();
+      }).then(function (st) {
+        note.remove();
+        toast('Environment saved.', 'ok');
+        window.location.href = st.next || @json(route('installer.database'));
+      }).catch(function () {
+        if (n >= 20) {
+          note.remove();
+          setBusy(saveBtn, false);
+          showResult(false, '✗ Server did not come back. Refresh the page — your data was saved.');
+          toast('Refresh the page to continue.', 'err');
+          return;
+        }
+        setTimeout(function () { poll(n + 1); }, 1500);
+      });
+    })(0);
+  }
+})();
+</script>
 @endsection

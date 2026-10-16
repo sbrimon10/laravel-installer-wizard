@@ -43,4 +43,9 @@ Route::middleware($middleware)->prefix($prefix)->name('installer.')->group(funct
         ->middleware('installer.ensure-order:complete')->name('complete');
     Route::post('/complete', [InstallerController::class, 'finish'])
         ->middleware('installer.ensure-order:complete')->name('finish');
+
+    // JSON API (vanilla-JS frontend, no page reloads).
+    Route::get('/api/status', [InstallerController::class, 'status'])->name('api.status');
+    Route::post('/api/test-connection', [InstallerController::class, 'testConnection'])
+        ->middleware('installer.ensure-order:environment')->name('api.test-connection');
 });

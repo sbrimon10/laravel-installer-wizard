@@ -96,9 +96,77 @@ class InstallerController
         ]);
     }
 
-    public function saveEnvironment(Request $request, EnvManager $env, DatabaseManager $db): RedirectResponse
+    public function saveEnvironment(Request $request, EnvManager $env, DatabaseManager $db): RedirectResponse|\Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
+        $validated = $this->validateEnvironment($request);
+        $normalized = $this->normalizeEnvironment($validated);
+
+        $check = $db->testConnection($normalized['params']);
+
+        if (! $check['ok']) {
+            if ($request->wantsJson()) {
+                return response()->json(['ok' => false, 'message' => $check['message']], 422);
+            }
+
+            return back()->withErrors(['DB_CONNECTION' => $check['message']])->withInput();
+        }
+
+        $env->update($normalized['env']);
+        Installer::markStep('environment');
+
+        // Fresh .env must take effect on the very next request.
+        try {
+            Artisan::call('config:clear');
+        } catch (\Throwable) {
+            // Non-fatal: worst case the next boot still reads .env directly.
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Environment saved and database connected.',
+                'redirect' => route('installer.database'),
+            ]);
+        }
+
+        return redirect()->route('installer.database')->with('status', 'Environment saved and database connected.');
+    }
+
+    /**
+     * Live probe WITHOUT writing .env (no server restart, no page reload).
+     * Always JSON: {ok, message}. Validation failures stay 422 JSON.
+     */
+    public function testConnection(Request $request, DatabaseManager $db): \Illuminate\Http\JsonResponse
+    {
+        $validated = $this->validateEnvironment($request);
+        $normalized = $this->normalizeEnvironment($validated);
+
+        $check = $db->testConnection($normalized['params']);
+
+        return response()->json($check, $check['ok'] ? 200 : 422);
+    }
+
+    /**
+     * Lightweight JSON for clients recovering from a dropped connection
+     * (e.g. dev-server restart after .env write). No DB touched.
+     */
+    public function status(): \Illuminate\Http\JsonResponse
+    {
+        $next = Installer::firstIncomplete();
+
+        return response()->json([
+            'installed' => Installer::installed(),
+            'passed' => array_keys(array_filter(session('installer.passed', []))),
+            'next' => $next ? route(Installer::routeFor($next)) : null,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function validateEnvironment(Request $request): array
+    {
+        return $request->validate([
             'APP_NAME' => ['required', 'string', 'max:255'],
             'APP_URL' => ['required', 'url', 'max:255'],
             'DB_CONNECTION' => ['required', 'in:mysql,mariadb,pgsql,sqlite'],
@@ -108,7 +176,13 @@ class InstallerController
             'DB_USERNAME' => ['required_unless:DB_CONNECTION,sqlite', 'nullable', 'string', 'max:255'],
             'DB_PASSWORD' => ['nullable', 'string', 'max:255'],
         ]);
+    }
 
+    /**
+     * @return array{params: array, env: array}
+     */
+    protected function normalizeEnvironment(array $validated): array
+    {
         $connection = strtolower($validated['DB_CONNECTION']);
         $connection = $connection === 'mariadb' ? 'mysql' : $connection;
 
@@ -127,40 +201,26 @@ class InstallerController
             }
         }
 
-        $check = $db->testConnection([
-            'connection' => $connection,
-            'host' => $validated['DB_HOST'] ?? null,
-            'port' => $validated['DB_PORT'] ?? null,
-            'database' => $database,
-            'username' => $validated['DB_USERNAME'] ?? null,
-            'password' => $validated['DB_PASSWORD'] ?? null,
-        ]);
-
-        if (! $check['ok']) {
-            return back()->withErrors(['DB_CONNECTION' => $check['message']])->withInput();
-        }
-
-        $env->update([
-            'APP_NAME' => $validated['APP_NAME'],
-            'APP_URL' => rtrim($validated['APP_URL'], '/'),
-            'DB_CONNECTION' => $connection,
-            'DB_HOST' => $validated['DB_HOST'] ?? '',
-            'DB_PORT' => (string) ($validated['DB_PORT'] ?? ''),
-            'DB_DATABASE' => $database,
-            'DB_USERNAME' => $validated['DB_USERNAME'] ?? '',
-            'DB_PASSWORD' => $validated['DB_PASSWORD'] ?? '',
-        ]);
-        Installer::markStep('environment');
-
-        // Fresh .env must take effect on the very next request.
-        try {
-            Artisan::call('config:clear');
-        } catch (\Throwable) {
-            // Non-fatal: worst case the next boot still reads .env directly.
-        }
-
-        // Database + admin step lands here next; for now continue to complete placeholder.
-        return redirect()->route('installer.database')->with('status', 'Environment saved and database connected.');
+        return [
+            'params' => [
+                'connection' => $connection,
+                'host' => $validated['DB_HOST'] ?? null,
+                'port' => $validated['DB_PORT'] ?? null,
+                'database' => $database,
+                'username' => $validated['DB_USERNAME'] ?? null,
+                'password' => $validated['DB_PASSWORD'] ?? null,
+            ],
+            'env' => [
+                'APP_NAME' => $validated['APP_NAME'],
+                'APP_URL' => rtrim($validated['APP_URL'], '/'),
+                'DB_CONNECTION' => $connection,
+                'DB_HOST' => $validated['DB_HOST'] ?? '',
+                'DB_PORT' => (string) ($validated['DB_PORT'] ?? ''),
+                'DB_DATABASE' => $database,
+                'DB_USERNAME' => $validated['DB_USERNAME'] ?? '',
+                'DB_PASSWORD' => $validated['DB_PASSWORD'] ?? '',
+            ],
+        ];
     }
 
     public function database(DatabaseManager $db): View

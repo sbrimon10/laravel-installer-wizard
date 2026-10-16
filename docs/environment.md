@@ -22,3 +22,16 @@ Lock file: `storage/installer.lock` (config `installer-wizard.lock_file`, env `I
 - Connection tests use Laravel's own connectors (including the SQLite absolute-path rule), so a green test means the app will boot with those values.
 - SQLite bare names are normalized to `database/*.sqlite` and the file is created; `.env` keys are de-duplicated on write; `config:clear` runs after every save so the next request boots fresh.
 - `php artisan serve` **restarts when `.env` changes** (Laravel dev-server behavior): the save response may drop locally — just refresh, the data is saved and the walk continues. Production php-fpm/nginx is unaffected.
+
+## Live test without reload (vanilla JS, zero dependencies)
+
+The Env page has a **Test connection** button that POSTs JSON to
+`/install/api/test-connection` — validated and probed, but nothing is
+written, so no page reload and no server restart. Results show inline plus a
+toast. **Save & continue** submits via fetch too: if the dev server restarts
+on the `.env` write and drops the response, the page polls
+`GET /install/api/status` until the server is back, then follows the
+`redirect`. Browsers without JS fall back to plain form POSTs.
+
+API summary: `POST /install/api/test-connection` → `200 {ok,message}` or
+`422`; `GET /install/api/status` → `{installed, passed[], next}`.
