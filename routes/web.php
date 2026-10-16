@@ -15,6 +15,8 @@ $middleware = array_merge(
 Route::middleware($middleware)->prefix($prefix)->name('installer.')->group(function () {
     Route::get('/', [InstallerController::class, 'welcome'])->name('welcome');
     Route::get('/requirements', [InstallerController::class, 'requirements'])->name('requirements');
+    Route::get('/license', [InstallerController::class, 'license'])->name('license');
+    Route::post('/license', [InstallerController::class, 'verifyLicense'])->name('license.verify');
     Route::get('/environment', [InstallerController::class, 'environment'])->name('environment');
     Route::post('/environment', [InstallerController::class, 'saveEnvironment'])->name('environment.save');
     Route::get('/database', [InstallerController::class, 'database'])->name('database');

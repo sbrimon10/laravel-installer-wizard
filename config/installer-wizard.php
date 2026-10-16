@@ -40,8 +40,17 @@ return [
 
     /*
     | License step is OFF by default. Turn on only if you sell.
+    | Verifier class must implement Sbrimon10\InstallerWizard\Support\LicenseVerifier.
+    | Use NullVerifier for local dev, EnvatoVerifier for CodeCanyon sales,
+    | or bind your own (e.g. a call to your website verify API).
     */
     'license_enabled' => env('INSTALLER_LICENSE_ENABLED', false),
+    'license_verifier' => env(
+        'INSTALLER_LICENSE_VERIFIER',
+        Sbrimon10\InstallerWizard\Support\License\EnvatoVerifier::class
+    ),
+    'license_envato_token' => env('INSTALLER_ENVATO_TOKEN'),
+    'license_env_key' => env('INSTALLER_LICENSE_ENV_KEY', 'APP_PURCHASE_CODE'),
 
     /*
     | Model used to create the admin user. Defaults to the host
@@ -55,9 +64,14 @@ return [
     'requirements' => [
         'php' => '8.3.0',
         'extensions' => [
-            'pdo', 'mbstring', 'openssl', 'json',
-            'tokenizer', 'xml', 'ctype', 'fileinfo',
-            'bcmath', 'curl',
+            // Missing required = installer blocks. Dev edits after publishing config.
+            'required' => [
+                'pdo', 'mbstring', 'openssl', 'json',
+                'tokenizer', 'xml', 'ctype', 'fileinfo', 'bcmath',
+            ],
+            // Missing optional = amber warning only, never blocks.
+            // e.g. zip (uploads), gd (images), intl (locales), curl (license API).
+            'optional' => ['curl', 'zip', 'gd', 'intl'],
         ],
         'permissions' => [
             'storage' => '775',

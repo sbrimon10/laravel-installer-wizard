@@ -25,6 +25,22 @@ Disable after install: `INSTALLER_ENABLED=false`.
 
 ## Wizard
 
-1. `/install` welcome → 2. `/install/requirements` → 3. `/install/environment` (writes `.env`, PDO-tests DB first) → 4. `/install/database` (`migrate --force`, optional fresh + seed) → 5. `/install/admin` (create/reset admin) → 6. `/install/complete` (writes lock).
+1. `/install` welcome → 2. `/install/requirements` (required blocks, recommended warns) → [3. `/install/license` if enabled] → Env (writes `.env`, PDO-tests DB first) → Database (`migrate --force`, optional fresh + seed) → Admin (create/reset) → Complete (writes lock).
 
-See `docs/` + `CHANGELOG.md`. Full docs site: see `../WEBSITE_PLAN.md`.
+Brand it from config: `INSTALLER_TITLE`, `INSTALLER_DESCRIPTION`. Docs in `docs/`.
+
+## Screenshots
+
+Captured from the preview app at release time (see `docs/screenshots/`):
+
+- `01-welcome.png` — welcome + stepper
+- `02-requirements.png` — required / recommended / server info
+- `03-environment.png` — `.env` form
+- `04-database.png` — migrate runner
+- `05-admin.png` — admin creation
+
+## FAQ
+
+- **Shared hosting without SSH?** Everything above runs in the browser; `wizard:check` is optional. Fix red items (PHP version, extensions need host support; `storage` + `bootstrap/cache` need 775).
+- **SQLite?** Pick SQLite in the Env step and point `DB_DATABASE` at `database/database.sqlite`.
+- **Re-open the wizard?** `php artisan wizard:reset` (dev only), or delete `storage/installer.lock`.

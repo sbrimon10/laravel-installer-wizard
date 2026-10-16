@@ -4,5 +4,8 @@ namespace Sbrimon10\InstallerWizard\Support;
 
 interface LicenseVerifier
 {
-    public function verify(string $code): bool;
+    /**
+     * @return array{ok: bool, message: string}
+     */
+    public function verify(string $code): array;
 }

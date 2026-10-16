@@ -25,6 +25,43 @@ class InstallerController
         ]);
     }
 
+    public function license(): View|RedirectResponse
+    {
+        if (! config('installer-wizard.license_enabled')) {
+            return redirect()->route('installer.environment');
+        }
+
+        return view('installer-wizard::steps.license');
+    }
+
+    public function verifyLicense(Request $request, EnvManager $env): RedirectResponse
+    {
+        if (! config('installer-wizard.license_enabled')) {
+            return redirect()->route('installer.environment');
+        }
+
+        $validated = $request->validate([
+            'license_code' => ['required', 'string', 'max:255'],
+        ]);
+
+        $verifierClass = config('installer-wizard.license_verifier');
+        $verifier = app($verifierClass);
+
+        $result = $verifier->verify($validated['license_code']);
+
+        if (! $result['ok']) {
+            return back()->withErrors(['license_code' => $result['message']])->withInput();
+        }
+
+        session(['installer.license_code' => $validated['license_code']]);
+
+        $env->update([
+            config('installer-wizard.license_env_key', 'APP_PURCHASE_CODE') => $validated['license_code'],
+        ]);
+
+        return redirect()->route('installer.environment')->with('status', $result['message']);
+    }
+
     public function environment(EnvManager $env): View
     {
         $current = $env->get([

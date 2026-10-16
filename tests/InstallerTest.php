@@ -24,6 +24,10 @@ it('loads database, admin and complete pages', function () {
     $this->get('/install/complete')->assertOk();
 });
 
+it('skips license step when disabled', function () {
+    $this->get('/install/license')->assertRedirect('/install/environment');
+});
+
 it('rejects bad database connection without touching .env', function () {
     $result = app(DatabaseManager::class)->testConnection([
         'connection' => 'mysql',

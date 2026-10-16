@@ -17,11 +17,16 @@
       $steps = [
         ['route' => 'installer.welcome', 'label' => '1. Welcome'],
         ['route' => 'installer.requirements', 'label' => '2. Requirements'],
-        ['route' => 'installer.environment', 'label' => '3. Env'],
-        ['route' => 'installer.database', 'label' => '4. DB'],
-        ['route' => 'installer.admin', 'label' => '5. Admin'],
-        ['route' => 'installer.complete', 'label' => '6. Done'],
       ];
+      if (config('installer-wizard.license_enabled')) {
+        $steps[] = ['route' => 'installer.license', 'label' => '3. License'];
+      }
+      $steps = array_merge($steps, [
+        ['route' => 'installer.environment', 'label' => (config('installer-wizard.license_enabled') ? '4. Env' : '3. Env')],
+        ['route' => 'installer.database', 'label' => (config('installer-wizard.license_enabled') ? '5. DB' : '4. DB')],
+        ['route' => 'installer.admin', 'label' => (config('installer-wizard.license_enabled') ? '6. Admin' : '5. Admin')],
+        ['route' => 'installer.complete', 'label' => (config('installer-wizard.license_enabled') ? '7. Done' : '6. Done')],
+      ]);
       $currentIndex = collect($steps)->search(fn ($s) => request()->routeIs($s['route']));
       $currentIndex = $currentIndex === false ? 0 : $currentIndex;
     @endphp
