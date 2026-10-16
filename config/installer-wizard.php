@@ -24,6 +24,14 @@ return [
     'middleware' => ['web'],
 
     /*
+    | When the host app registers RedirectToInstaller in its web group,
+    | these paths redirect to the wizard until the lock file exists.
+    | Default is just the homepage so the package never hijacks the app.
+    */
+    'auto_redirect' => env('INSTALLER_AUTO_REDIRECT', true),
+    'redirect_paths' => ['/'],
+
+    /*
     | License step is OFF by default. Turn on only if you sell.
     */
     'license_enabled' => env('INSTALLER_LICENSE_ENABLED', false),

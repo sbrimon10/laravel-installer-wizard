@@ -5,6 +5,7 @@ namespace Sbrimon10\InstallerWizard;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use Sbrimon10\InstallerWizard\Http\Middleware\CanInstall;
+use Sbrimon10\InstallerWizard\Http\Middleware\RedirectToInstaller;
 
 class InstallerWizardServiceProvider extends ServiceProvider
 {
@@ -16,6 +17,7 @@ class InstallerWizardServiceProvider extends ServiceProvider
         /** @var Router $router */
         $router = $this->app['router'];
         $router->aliasMiddleware('installer.can-install', CanInstall::class);
+        $router->aliasMiddleware('installer.redirect', RedirectToInstaller::class);
     }
 
     public function boot(): void
