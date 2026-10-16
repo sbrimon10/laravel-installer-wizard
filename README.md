@@ -25,6 +25,6 @@ Disable after install: `INSTALLER_ENABLED=false`.
 
 ## Wizard
 
-1. `/install` welcome → 2. `/install/requirements` → 3. `/install/environment` (writes `.env`, PDO-tests DB first) → 4. DB + admin (next) → 5. `/install/complete`.
+1. `/install` welcome → 2. `/install/requirements` → 3. `/install/environment` (writes `.env`, PDO-tests DB first) → 4. `/install/database` (`migrate --force`, optional fresh + seed) → 5. `/install/admin` (create/reset admin) → 6. `/install/complete` (writes lock).
 
 See `docs/` + `CHANGELOG.md`. Full docs site: see `../WEBSITE_PLAN.md`.

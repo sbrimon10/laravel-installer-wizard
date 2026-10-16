@@ -17,6 +17,12 @@ it('loads environment page', function () {
     $response->assertSee('Environment', false);
 });
 
+it('loads database, admin and complete pages', function () {
+    $this->get('/install/database')->assertOk();
+    $this->get('/install/admin')->assertOk();
+    $this->get('/install/complete')->assertOk();
+});
+
 it('rejects bad database connection without touching .env', function () {
     $result = app(DatabaseManager::class)->testConnection([
         'connection' => 'mysql',

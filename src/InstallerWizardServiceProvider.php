@@ -10,7 +10,7 @@ class InstallerWizardServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../../config/installer-wizard.php', 'installer-wizard');
+        $this->mergeConfigFrom(__DIR__.'/../config/installer-wizard.php', 'installer-wizard');
 
         // Register early so host apps can reference it even if our routes load first.
         /** @var Router $router */
@@ -21,14 +21,14 @@ class InstallerWizardServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->publishes([
-            __DIR__.'/../../config/installer-wizard.php' => config_path('installer-wizard.php'),
+            __DIR__.'/../config/installer-wizard.php' => config_path('installer-wizard.php'),
         ], 'installer-wizard-config');
 
         $this->publishes([
-            __DIR__.'/../../resources/views' => resource_path('views/vendor/installer-wizard'),
+            __DIR__.'/../resources/views' => resource_path('views/vendor/installer-wizard'),
         ], 'installer-wizard-views');
 
-        $this->loadViewsFrom(__DIR__.'/../../resources/views', 'installer-wizard');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'installer-wizard');
 
         // Load routes first-party; CanInstall inside the group still checks
         // the storage lock file before anything else reaches a controller.
@@ -36,6 +36,6 @@ class InstallerWizardServiceProvider extends ServiceProvider
             return;
         }
 
-        $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
     }
 }

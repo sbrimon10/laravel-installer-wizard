@@ -15,7 +15,8 @@
       <a href="{{ route('installer.welcome') }}" class="px-3 py-1 rounded-full bg-slate-900 text-white">1. Welcome</a>
       <a href="{{ route('installer.requirements') }}" class="px-3 py-1 rounded-full bg-slate-200">2. Requirements</a>
       <a href="{{ route('installer.environment') }}" class="px-3 py-1 rounded-full bg-slate-200">3. Env</a>
-      <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-400">4. DB · 5. Done</span>
+      <a href="{{ route('installer.database') }}" class="px-3 py-1 rounded-full bg-slate-200">4. DB</a>
+      <a href="{{ route('installer.admin') }}" class="px-3 py-1 rounded-full bg-slate-200">5. Admin</a>
     </div>
     @if(session('status'))
     <div class="mb-4 text-sm bg-green-50 text-green-800 p-3 rounded-lg">{{ session('status') }}</div>

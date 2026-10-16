@@ -28,6 +28,15 @@ return [
     */
     'license_enabled' => env('INSTALLER_LICENSE_ENABLED', false),
 
+    /*
+    | Model used to create the admin user. Defaults to the host
+    | auth provider model. Override per project if needed.
+    */
+    'admin_model' => env('INSTALLER_ADMIN_MODEL', 'App\\Models\\User'),
+
+    // Run `migrate --seed` from the database step when true.
+    'run_seed' => env('INSTALLER_RUN_SEED', false),
+
     'requirements' => [
         'php' => '8.3.0',
         'extensions' => [

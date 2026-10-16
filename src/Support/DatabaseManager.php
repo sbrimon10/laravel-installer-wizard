@@ -2,6 +2,7 @@
 
 namespace Sbrimon10\InstallerWizard\Support;
 
+use Illuminate\Support\Facades\Artisan;
 use PDO;
 use Throwable;
 
@@ -58,6 +59,34 @@ class DatabaseManager
     }
 
     // TODO: run migrations + seed (database step).
+    /**
+     * Run host-app migrations. Optionally fresh + seed via config.
+     *
+     * @return array{ok: bool, message: string, output: string}
+     */
+    public function migrate(bool $fresh = false, bool $seed = false): array
+    {
+        try {
+            $command = $fresh ? 'migrate:fresh' : 'migrate';
+            $params = ['--force' => true];
+
+            if ($seed) {
+                $params['--seed'] = true;
+            }
+
+            $exit = Artisan::call($command, $params);
+            $output = Artisan::output();
+
+            if ($exit !== 0) {
+                return ['ok' => false, 'message' => 'Migration failed (exit '.$exit.').', 'output' => $output];
+            }
+
+            return ['ok' => true, 'message' => 'Migrations completed.', 'output' => $output];
+        } catch (Throwable $e) {
+            return ['ok' => false, 'message' => 'Migration failed: '.$e->getMessage(), 'output' => ''];
+        }
+    }
+
     public function stub(): bool
     {
         return true;

@@ -5,6 +5,7 @@ namespace Sbrimon10\InstallerWizard\Http\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Sbrimon10\InstallerWizard\Support\AdminManager;
 use Sbrimon10\InstallerWizard\Support\DatabaseManager;
 use Sbrimon10\InstallerWizard\Support\EnvManager;
 use Sbrimon10\InstallerWizard\Support\Installer;
@@ -22,13 +23,6 @@ class InstallerController
         return view('installer-wizard::steps.requirements', [
             'checks' => $checker->check(),
         ]);
-    }
-
-    public function complete(): View
-    {
-        $installed = Installer::installed();
-
-        return view('installer-wizard::steps.complete', compact('installed'));
     }
 
     public function environment(EnvManager $env): View
@@ -96,6 +90,71 @@ class InstallerController
         ]);
 
         // Database + admin step lands here next; for now continue to complete placeholder.
-        return redirect()->route('installer.complete')->with('status', 'Environment saved and database connected.');
+        return redirect()->route('installer.database')->with('status', 'Environment saved and database connected.');
+    }
+
+    public function database(): View
+    {
+        return view('installer-wizard::steps.database', [
+            'seed' => (bool) config('installer-wizard.run_seed', false),
+        ]);
+    }
+
+    public function runMigrations(Request $request, DatabaseManager $db): RedirectResponse
+    {
+        $validated = $request->validate([
+            'fresh' => ['nullable', 'boolean'],
+        ]);
+
+        $result = $db->migrate(
+            fresh: (bool) ($validated['fresh'] ?? false),
+            seed: (bool) config('installer-wizard.run_seed', false),
+        );
+
+        if (! $result['ok']) {
+            return back()->withErrors(['migrate' => $result['message']])->with('migrate_output', $result['output']);
+        }
+
+        return redirect()->route('installer.admin')
+            ->with('status', $result['message'])
+            ->with('migrate_output', $result['output']);
+    }
+
+    public function admin(): View
+    {
+        return view('installer-wizard::steps.admin');
+    }
+
+    public function storeAdmin(Request $request, AdminManager $admin): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $result = $admin->create($validated);
+
+        if (! $result['ok']) {
+            return back()->withErrors(['email' => $result['message']])->withInput();
+        }
+
+        return redirect()->route('installer.complete')->with('status', $result['message'].' Continue to finish.');
+    }
+
+    public function complete(): View
+    {
+        $installed = Installer::installed();
+
+        return view('installer-wizard::steps.complete', compact('installed'));
+    }
+
+    public function finish(): RedirectResponse
+    {
+        if (! Installer::installed()) {
+            Installer::markInstalled();
+        }
+
+        return redirect()->route('installer.complete')->with('status', 'Installation complete. Wizard is now locked.');
     }
 }

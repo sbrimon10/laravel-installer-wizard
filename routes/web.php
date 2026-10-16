@@ -17,5 +17,10 @@ Route::middleware($middleware)->prefix($prefix)->name('installer.')->group(funct
     Route::get('/requirements', [InstallerController::class, 'requirements'])->name('requirements');
     Route::get('/environment', [InstallerController::class, 'environment'])->name('environment');
     Route::post('/environment', [InstallerController::class, 'saveEnvironment'])->name('environment.save');
+    Route::get('/database', [InstallerController::class, 'database'])->name('database');
+    Route::post('/database', [InstallerController::class, 'runMigrations'])->name('database.run');
+    Route::get('/admin', [InstallerController::class, 'admin'])->name('admin');
+    Route::post('/admin', [InstallerController::class, 'storeAdmin'])->name('admin.store');
     Route::get('/complete', [InstallerController::class, 'complete'])->name('complete');
+    Route::post('/complete', [InstallerController::class, 'finish'])->name('finish');
 });
