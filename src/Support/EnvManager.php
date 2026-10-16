@@ -59,6 +59,10 @@ class EnvManager
             $key = trim(substr($line, 0, $pos));
 
             if (array_key_exists($key, $data)) {
+                if (isset($seen[$key])) {
+                    unset($lines[$i]); // drop pre-existing duplicates
+                    continue;
+                }
                 $lines[$i] = $key.'='.$this->formatValue($data[$key]);
                 $seen[$key] = true;
             }
@@ -70,7 +74,7 @@ class EnvManager
             }
         }
 
-        file_put_contents($path, implode(PHP_EOL, $lines).PHP_EOL);
+        file_put_contents($path, implode(PHP_EOL, array_values($lines)).PHP_EOL);
     }
 
     /**

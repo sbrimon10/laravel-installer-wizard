@@ -3,13 +3,16 @@
 namespace Sbrimon10\InstallerWizard\Support;
 
 use Illuminate\Support\Facades\Artisan;
-use PDO;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class DatabaseManager
 {
     /**
-     * Attempt a PDO connection with the given settings. No side effects.
+     * Attempt a connection with the given settings using Laravel's own
+     * connectors (same semantics the app will boot with — including the
+     * SQLite absolute-path rule). No side effects: tested on a throwaway
+     * connection name that is purged afterwards.
      *
      * @param  array{connection?: string, host?: ?string, port?: mixed, database?: ?string, username?: ?string, password?: ?string}  $config
      * @return array{ok: bool, message: string}
@@ -19,46 +22,59 @@ class DatabaseManager
         $driver = strtolower((string) ($config['connection'] ?? 'mysql'));
         $driver = $driver === 'mariadb' ? 'mysql' : $driver;
 
-        try {
-            if ($driver === 'sqlite') {
-                $database = (string) ($config['database'] ?? ':memory:');
-                $pdo = new PDO("sqlite:{$database}", null, null, [
-                    PDO::ATTR_TIMEOUT => 5,
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                ]);
-            } elseif ($driver === 'pgsql') {
-                $dsn = sprintf(
-                    'pgsql:host=%s;port=%s;dbname=%s',
-                    $config['host'] ?? '127.0.0.1',
-                    $config['port'] ?? '5432',
-                    $config['database'] ?? ''
-                );
-                $pdo = new PDO($dsn, (string) ($config['username'] ?? ''), (string) ($config['password'] ?? ''), [
-                    PDO::ATTR_TIMEOUT => 5,
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                ]);
-            } else {
-                $dsn = sprintf(
-                    'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
-                    $config['host'] ?? '127.0.0.1',
-                    $config['port'] ?? '3306',
-                    $config['database'] ?? ''
-                );
-                $pdo = new PDO($dsn, (string) ($config['username'] ?? ''), (string) ($config['password'] ?? ''), [
-                    PDO::ATTR_TIMEOUT => 5,
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                ]);
-            }
+        $name = 'installer_probe';
 
-            $pdo->query('SELECT 1');
+        try {
+            config(['database.connections.'.$name => match ($driver) {
+                'sqlite' => [
+                    'driver' => 'sqlite',
+                    'database' => (string) ($config['database'] ?? ':memory:'),
+                    'prefix' => '',
+                    'foreign_key_constraints' => true,
+                ],
+                'pgsql' => [
+                    'driver' => 'pgsql',
+                    'host' => $config['host'] ?? '127.0.0.1',
+                    'port' => $config['port'] ?? '5432',
+                    'database' => $config['database'] ?? '',
+                    'username' => $config['username'] ?? '',
+                    'password' => $config['password'] ?? '',
+                    'charset' => 'utf8',
+                    'prefix' => '',
+                    'prefix_indexes' => true,
+                    'search_path' => 'public',
+                    'sslmode' => 'prefer',
+                ],
+                default => [
+                    'driver' => 'mysql',
+                    'host' => $config['host'] ?? '127.0.0.1',
+                    'port' => $config['port'] ?? '3306',
+                    'database' => $config['database'] ?? '',
+                    'username' => $config['username'] ?? '',
+                    'password' => $config['password'] ?? '',
+                    'charset' => 'utf8mb4',
+                    'collation' => 'utf8mb4_unicode_ci',
+                    'prefix' => '',
+                    'strict' => true,
+                    'engine' => null,
+                ],
+            }]);
+
+            DB::purge($name);
+            DB::connection($name)->getPdo()->query('SELECT 1');
 
             return ['ok' => true, 'message' => 'Connection successful.'];
         } catch (Throwable $e) {
             return ['ok' => false, 'message' => 'Connection failed: '.$e->getMessage()];
+        } finally {
+            try {
+                DB::purge($name);
+            } catch (Throwable) {
+                // Never let cleanup break the result.
+            }
         }
     }
 
-    // TODO: run migrations + seed (database step).
     /**
      * Run host-app migrations. Seeding follows config: a custom
      * seed_class wins, otherwise --seed when run_seed is true.
@@ -101,10 +117,5 @@ class DatabaseManager
         } catch (Throwable $e) {
             return ['ok' => false, 'message' => 'Migration failed: '.$e->getMessage(), 'output' => ''];
         }
-    }
-
-    public function stub(): bool
-    {
-        return true;
     }
 }

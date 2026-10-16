@@ -6,6 +6,13 @@
 <h2 class="text-xl font-semibold mb-3">Database</h2>
 <p class="text-sm text-slate-500 mb-4">Runs your app migrations with <code>--force</code>@if($seed). Seeding is enabled (<code>INSTALLER_RUN_SEED=true</code>).@endif</p>
 
+@if(!($reachable['ok'] ?? true))
+<div class="mb-4 text-sm bg-amber-50 text-amber-800 p-3 rounded-lg">
+  Current <code>.env</code> connection fails: {{ $reachable['message'] ?? '' }}<br>
+  <a href="{{ route('installer.environment') }}" class="underline font-medium">Fix it in the Env step</a> — the wizard stays usable.
+</div>
+@endif
+
 @if($errors->any())
 <div class="mb-4 text-sm bg-red-50 text-red-800 p-3 rounded-lg">
   <ul class="list-disc ml-5">

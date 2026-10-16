@@ -5,6 +5,7 @@ namespace Sbrimon10\InstallerWizard\Http\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Sbrimon10\InstallerWizard\Support\AdminManager;
 use Sbrimon10\InstallerWizard\Support\DatabaseManager;
 use Sbrimon10\InstallerWizard\Support\EnvManager;
@@ -111,11 +112,26 @@ class InstallerController
         $connection = strtolower($validated['DB_CONNECTION']);
         $connection = $connection === 'mariadb' ? 'mysql' : $connection;
 
+        $database = $validated['DB_DATABASE'];
+
+        // SQLite via Laravel requires an absolute path to an existing file
+        // (or :memory:). Normalize bare names and create the file so the
+        // saved .env can never stick the installer on next boot.
+        if ($connection === 'sqlite' && $database !== ':memory:') {
+            if (! preg_match('/^([A-Z]:\\\\|\\/)/i', $database)) {
+                $database = database_path(preg_match('/\\.sqlite$/i', $database) ? $database : $database.'.sqlite');
+            }
+
+            if (! file_exists($database)) {
+                @touch($database);
+            }
+        }
+
         $check = $db->testConnection([
             'connection' => $connection,
             'host' => $validated['DB_HOST'] ?? null,
             'port' => $validated['DB_PORT'] ?? null,
-            'database' => $validated['DB_DATABASE'],
+            'database' => $database,
             'username' => $validated['DB_USERNAME'] ?? null,
             'password' => $validated['DB_PASSWORD'] ?? null,
         ]);
@@ -130,20 +146,40 @@ class InstallerController
             'DB_CONNECTION' => $connection,
             'DB_HOST' => $validated['DB_HOST'] ?? '',
             'DB_PORT' => (string) ($validated['DB_PORT'] ?? ''),
-            'DB_DATABASE' => $validated['DB_DATABASE'],
+            'DB_DATABASE' => $database,
             'DB_USERNAME' => $validated['DB_USERNAME'] ?? '',
             'DB_PASSWORD' => $validated['DB_PASSWORD'] ?? '',
         ]);
         Installer::markStep('environment');
 
+        // Fresh .env must take effect on the very next request.
+        try {
+            Artisan::call('config:clear');
+        } catch (\Throwable) {
+            // Non-fatal: worst case the next boot still reads .env directly.
+        }
+
         // Database + admin step lands here next; for now continue to complete placeholder.
         return redirect()->route('installer.database')->with('status', 'Environment saved and database connected.');
     }
 
-    public function database(): View
+    public function database(DatabaseManager $db): View
     {
+        // Warn (don't crash) when the saved .env connection is unreachable,
+        // so buyers know to go back to Env instead of staring at a 500.
+        $current = config('database.connections.'.config('database.default'));
+        $reachable = $db->testConnection([
+            'connection' => $current['driver'] ?? config('database.default'),
+            'host' => $current['host'] ?? null,
+            'port' => $current['port'] ?? null,
+            'database' => $current['database'] ?? null,
+            'username' => $current['username'] ?? null,
+            'password' => $current['password'] ?? null,
+        ]);
+
         return view('installer-wizard::steps.database', [
             'seed' => (bool) config('installer-wizard.run_seed', false),
+            'reachable' => $reachable,
         ]);
     }
 

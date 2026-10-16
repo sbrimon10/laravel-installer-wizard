@@ -21,6 +21,18 @@ class CanInstall
             abort(404);
         }
 
+        // 3. Decouple the wizard from the host's (possibly broken, just-written)
+        // .env: file sessions/cache keep every wizard page loadable even when
+        // the configured database is unreachable, so buyers can always go
+        // back to the Env step and fix it instead of hitting a 500.
+        if (! Installer::installed()) {
+            config([
+                'session.driver' => 'file',
+                'cache.default' => 'file',
+                'queue.default' => 'sync',
+            ]);
+        }
+
         return $next($request);
     }
 }

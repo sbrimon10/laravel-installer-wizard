@@ -44,3 +44,5 @@ Captured from the preview app at release time (see `docs/screenshots/`):
 - **Shared hosting without SSH?** Everything above runs in the browser; `wizard:check` is optional. Fix red items (PHP version, extensions need host support; `storage` + `bootstrap/cache` need 775).
 - **SQLite?** Pick SQLite in the Env step and point `DB_DATABASE` at `database/database.sqlite`.
 - **Re-open the wizard?** `php artisan wizard:reset` (dev only), or delete `storage/installer.lock`.
+- **Connection drops right after saving Env on `php artisan serve`?** Normal: the dev server restarts when `.env` changes. Refresh and continue — data is saved. Unaffected on real hosting.
+- **Saved wrong DB data?** The wizard stays usable (file sessions while unlocked) — reopen `/install/environment` and correct it. See `docs/environment.md`.

@@ -52,6 +52,15 @@ it('rejects bad database connection without touching .env', function () {
     expect($result['ok'])->toBeFalse();
 });
 
+it('accepts sqlite memory through the framework connector', function () {
+    $result = app(DatabaseManager::class)->testConnection([
+        'connection' => 'sqlite',
+        'database' => ':memory:',
+    ]);
+
+    expect($result['ok'])->toBeTrue();
+});
+
 it('skips license step when disabled', function () {
     $this->get('/install/license')->assertRedirect('/install/environment');
 });
