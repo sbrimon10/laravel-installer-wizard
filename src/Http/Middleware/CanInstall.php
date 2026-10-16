@@ -22,12 +22,17 @@ class CanInstall
         }
 
         // 3. Decouple the wizard from the host's (possibly broken, just-written)
-        // .env: file sessions/cache keep every wizard page loadable even when
-        // the configured database is unreachable, so buyers can always go
-        // back to the Env step and fix it instead of hitting a 500.
+        // .env: cookie sessions + file cache keep every wizard page loadable
+        // even when the configured database is unreachable, so buyers can
+        // always go back to the Env step and fix it instead of hitting a 500.
+        // Cookie sessions also survive dev-server restarts: a response killed
+        // mid-flight can't corrupt server-side session files. The cookie name
+        // is pinned (never derived from APP_NAME) so renaming the app
+        // mid-install doesn't orphan the walk.
         if (! Installer::installed()) {
             config([
-                'session.driver' => 'file',
+                'session.driver' => 'cookie',
+                'session.cookie' => 'installer_session',
                 'cache.default' => 'file',
                 'queue.default' => 'sync',
             ]);

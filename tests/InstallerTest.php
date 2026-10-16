@@ -82,3 +82,47 @@ it('reports installer status as JSON', function () {
         ->assertOk()
         ->assertJson(['installed' => false]);
 });
+
+it('groups appended env keys and drops duplicates', function () {
+    $file = tempnam(sys_get_temp_dir(), 'env');
+    file_put_contents($file, "APP_NAME=x\nDB_HOST=old\nDB_HOST=dup\n");
+
+    $mgr = new class($file) extends \Sbrimon10\InstallerWizard\Support\EnvManager
+    {
+        public function __construct(private string $f) {}
+        public function path(): string
+        {
+            return $this->f;
+        }
+    };
+
+    $mgr->update(['DB_HOST' => 'new', 'DB_DATABASE' => 'app']);
+
+    $content = file_get_contents($file);
+    unlink($file);
+
+    expect(substr_count($content, 'DB_HOST='))->toBe(1)
+        ->and($content)->toContain('DB_DATABASE=app')
+        ->and(strpos($content, 'DB_DATABASE'))->toBeGreaterThan(strpos($content, 'DB_HOST'));
+});
+
+it('skips env write when nothing changed', function () {
+    $file = tempnam(sys_get_temp_dir(), 'env');
+    file_put_contents($file, "A=1\nB=\"x y\"\n");
+
+    $mgr = new class($file) extends \Sbrimon10\InstallerWizard\Support\EnvManager
+    {
+        public function __construct(private string $f) {}
+        public function path(): string
+        {
+            return $this->f;
+        }
+    };
+
+    expect($mgr->update(['A' => '1', 'B' => 'x y']))->toBeFalse()
+        ->and(file_get_contents($file))->toBe("A=1\nB=\"x y\"\n");
+
+    expect($mgr->update(['A' => '2']))->toBeTrue();
+
+    unlink($file);
+});

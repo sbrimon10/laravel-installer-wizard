@@ -112,7 +112,6 @@ class InstallerController
         }
 
         $env->update($normalized['env']);
-        Installer::markStep('environment');
 
         // Fresh .env must take effect on the very next request.
         try {
@@ -120,6 +119,8 @@ class InstallerController
         } catch (\Throwable) {
             // Non-fatal: worst case the next boot still reads .env directly.
         }
+
+        Installer::markStep('environment');
 
         if ($request->wantsJson()) {
             return response()->json([

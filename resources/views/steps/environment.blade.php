@@ -179,8 +179,17 @@
 
   // Save via fetch. If the dev server restarts on .env write and drops the
   // connection, poll /api/status until it is back, then continue.
+  // If the save itself was killed before finishing (status still points
+  // here), the save is re-submitted automatically — it is idempotent.
+  var saveTries = 0;
+  var envUrl = window.location.href;
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+    doSave();
+  });
+
+  function doSave() {
+    saveTries++;
     setBusy(saveBtn, true, 'Saving…');
     postJson(saveUrl, payload()).then(function (out) {
       if (out.http === 200 && out.json.ok) {
@@ -196,11 +205,11 @@
         toast(out.json.message || 'Save failed.', 'err');
       }
     }).catch(function () {
-      waitForServer(0);
+      waitForServer();
     });
-  });
+  }
 
-  function waitForServer(tries) {
+  function waitForServer() {
     var note = toast('Saving… server restarting, waiting…', 'wait');
     (function poll(n) {
       fetch(statusUrl, { headers: { 'Accept': 'application/json' } }).then(function (res) {
@@ -208,8 +217,16 @@
         return res.json();
       }).then(function (st) {
         note.remove();
-        toast('Environment saved.', 'ok');
-        window.location.href = st.next || @json(route('installer.database'));
+        if (st.next && st.next !== envUrl) {
+          toast('Environment saved.', 'ok');
+          window.location.href = st.next;
+        } else if (saveTries < 3) {
+          doSave();
+        } else {
+          setBusy(saveBtn, false);
+          showResult(false, '✗ Saved, but please press Save & continue once more.');
+          toast('Press Save & continue once more.', 'err');
+        }
       }).catch(function () {
         if (n >= 20) {
           note.remove();
