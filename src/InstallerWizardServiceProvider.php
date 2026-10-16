@@ -5,8 +5,10 @@ namespace Sbrimon10\InstallerWizard;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use Sbrimon10\InstallerWizard\Console\WizardCheckCommand;
+use Sbrimon10\InstallerWizard\Console\WizardMigrateCommand;
 use Sbrimon10\InstallerWizard\Console\WizardResetCommand;
 use Sbrimon10\InstallerWizard\Http\Middleware\CanInstall;
+use Sbrimon10\InstallerWizard\Http\Middleware\EnsureStepOrder;
 use Sbrimon10\InstallerWizard\Http\Middleware\RedirectToInstaller;
 
 class InstallerWizardServiceProvider extends ServiceProvider
@@ -20,6 +22,7 @@ class InstallerWizardServiceProvider extends ServiceProvider
         $router = $this->app['router'];
         $router->aliasMiddleware('installer.can-install', CanInstall::class);
         $router->aliasMiddleware('installer.redirect', RedirectToInstaller::class);
+        $router->aliasMiddleware('installer.ensure-order', EnsureStepOrder::class);
     }
 
     public function boot(): void
@@ -35,7 +38,7 @@ class InstallerWizardServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'installer-wizard');
 
         if ($this->app->runningInConsole()) {
-            $this->commands([WizardCheckCommand::class, WizardResetCommand::class]);
+            $this->commands([WizardCheckCommand::class, WizardMigrateCommand::class, WizardResetCommand::class]);
         }
 
         // Load routes first-party; CanInstall inside the group still checks

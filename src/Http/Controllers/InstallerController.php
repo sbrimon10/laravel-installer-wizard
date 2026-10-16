@@ -15,13 +15,21 @@ class InstallerController
 {
     public function welcome(): View
     {
+        Installer::markStep('welcome');
+
         return view('installer-wizard::steps.welcome');
     }
 
     public function requirements(RequirementsChecker $checker): View
     {
+        $checks = $checker->check();
+
+        if ($checks['passes']) {
+            Installer::markStep('requirements');
+        }
+
         return view('installer-wizard::steps.requirements', [
-            'checks' => $checker->check(),
+            'checks' => $checks,
         ]);
     }
 
@@ -54,6 +62,7 @@ class InstallerController
         }
 
         session(['installer.license_code' => $validated['license_code']]);
+        Installer::markStep('license');
 
         $env->update([
             config('installer-wizard.license_env_key', 'APP_PURCHASE_CODE') => $validated['license_code'],
@@ -125,6 +134,7 @@ class InstallerController
             'DB_USERNAME' => $validated['DB_USERNAME'] ?? '',
             'DB_PASSWORD' => $validated['DB_PASSWORD'] ?? '',
         ]);
+        Installer::markStep('environment');
 
         // Database + admin step lands here next; for now continue to complete placeholder.
         return redirect()->route('installer.database')->with('status', 'Environment saved and database connected.');
@@ -145,12 +155,13 @@ class InstallerController
 
         $result = $db->migrate(
             fresh: (bool) ($validated['fresh'] ?? false),
-            seed: (bool) config('installer-wizard.run_seed', false),
         );
 
         if (! $result['ok']) {
             return back()->withErrors(['migrate' => $result['message']])->with('migrate_output', $result['output']);
         }
+
+        Installer::markStep('database');
 
         return redirect()->route('installer.admin')
             ->with('status', $result['message'])
@@ -176,6 +187,8 @@ class InstallerController
             return back()->withErrors(['email' => $result['message']])->withInput();
         }
 
+        Installer::markStep('admin');
+
         return redirect()->route('installer.complete')->with('status', $result['message'].' Continue to finish.');
     }
 
@@ -188,10 +201,21 @@ class InstallerController
 
     public function finish(): RedirectResponse
     {
+        $post = Installer::runPostCommands();
+        $failed = array_column(array_filter($post, fn ($r) => ! $r['ok']), 'command');
+
         if (! Installer::installed()) {
             Installer::markInstalled();
         }
 
-        return redirect()->route('installer.complete')->with('status', 'Installation complete. Wizard is now locked.');
+        Installer::markStep('complete');
+
+        $message = 'Installation complete. Wizard is now locked.';
+
+        if (count($failed)) {
+            $message .= ' Post-install warnings: '.implode(', ', $failed).' — run them manually via artisan.';
+        }
+
+        return redirect()->route('installer.complete')->with('status', $message);
     }
 }

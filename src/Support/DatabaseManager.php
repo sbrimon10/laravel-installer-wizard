@@ -60,17 +60,24 @@ class DatabaseManager
 
     // TODO: run migrations + seed (database step).
     /**
-     * Run host-app migrations. Optionally fresh + seed via config.
+     * Run host-app migrations. Seeding follows config: a custom
+     * seed_class wins, otherwise --seed when run_seed is true.
+     * Lifts the PHP time limit so big seeds survive shared hosting.
      *
      * @return array{ok: bool, message: string, output: string}
      */
-    public function migrate(bool $fresh = false, bool $seed = false): array
+    public function migrate(bool $fresh = false): array
     {
+        if (function_exists('set_time_limit')) {
+            set_time_limit(0);
+        }
+
         try {
             $command = $fresh ? 'migrate:fresh' : 'migrate';
             $params = ['--force' => true];
+            $seedClass = config('installer-wizard.seed_class');
 
-            if ($seed) {
+            if (! $seedClass && config('installer-wizard.run_seed')) {
                 $params['--seed'] = true;
             }
 
@@ -79,6 +86,15 @@ class DatabaseManager
 
             if ($exit !== 0) {
                 return ['ok' => false, 'message' => 'Migration failed (exit '.$exit.').', 'output' => $output];
+            }
+
+            if ($seedClass) {
+                $seedExit = Artisan::call('db:seed', ['--class' => $seedClass, '--force' => true]);
+                $output .= "\n".Artisan::output();
+
+                if ($seedExit !== 0) {
+                    return ['ok' => false, 'message' => "Seeder [{$seedClass}] failed (exit {$seedExit}).", 'output' => $output];
+                }
             }
 
             return ['ok' => true, 'message' => 'Migrations completed.', 'output' => $output];

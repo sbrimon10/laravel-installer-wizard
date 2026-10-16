@@ -61,6 +61,15 @@ return [
     // Run `migrate --seed` from the database step when true.
     'run_seed' => env('INSTALLER_RUN_SEED', false),
 
+    // Optional seeder class run after migrations (e.g. Database\Seeders\DatabaseSeeder).
+    // Takes precedence over run_seed when set. Null = migrations only / --seed flag.
+    'seed_class' => env('INSTALLER_SEED_CLASS'),
+
+    // Artisan commands run at finish, before the lock is written
+    // (cache clears so the fresh .env takes effect everywhere).
+    'post_commands' => ['config:clear', 'route:clear', 'view:clear'],
+    'storage_link' => env('INSTALLER_STORAGE_LINK', true),
+
     'requirements' => [
         'php' => '8.3.0',
         'extensions' => [

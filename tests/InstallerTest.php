@@ -10,22 +10,33 @@ it('loads welcome page', function () {
     $response->assertSee('Laravel Installer Wizard');
 });
 
-it('loads environment page', function () {
-    $response = $this->get('/install/environment');
-
-    $response->assertOk();
-    $response->assertSee('Environment', false);
+it('blocks jumping ahead without previous steps', function () {
+    $this->get('/install/environment')->assertRedirect(route('installer.welcome'));
+    $this->get('/install/database')->assertRedirect(route('installer.welcome'));
+    $this->get('/install/admin')->assertRedirect(route('installer.welcome'));
+    $this->get('/install/complete')->assertRedirect(route('installer.welcome'));
 });
 
-it('loads database, admin and complete pages', function () {
-    $this->get('/install/requirements')->assertOk();
-    $this->get('/install/database')->assertOk();
-    $this->get('/install/admin')->assertOk();
-    $this->get('/install/complete')->assertOk();
-});
+it('opens each step once previous steps passed', function () {
+    $passed = ['welcome' => true, 'requirements' => true];
 
-it('skips license step when disabled', function () {
-    $this->get('/install/license')->assertRedirect('/install/environment');
+    $this->withSession(['installer.passed' => $passed])
+        ->get('/install/environment')->assertOk();
+
+    $passed['environment'] = true;
+
+    $this->withSession(['installer.passed' => $passed])
+        ->get('/install/database')->assertOk();
+
+    $passed['database'] = true;
+
+    $this->withSession(['installer.passed' => $passed])
+        ->get('/install/admin')->assertOk();
+
+    $passed['admin'] = true;
+
+    $this->withSession(['installer.passed' => $passed])
+        ->get('/install/complete')->assertOk();
 });
 
 it('rejects bad database connection without touching .env', function () {
@@ -39,4 +50,8 @@ it('rejects bad database connection without touching .env', function () {
     ]);
 
     expect($result['ok'])->toBeFalse();
+});
+
+it('skips license step when disabled', function () {
+    $this->get('/install/license')->assertRedirect('/install/environment');
 });

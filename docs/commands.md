@@ -16,3 +16,14 @@ php artisan wizard:check || echo "server not ready"
 
 Deletes the lock file so the wizard opens again. For dev machines and
 repair jobs only — never expose it to buyers.
+
+## `php artisan wizard:migrate [--fresh]`
+
+Runs the same migration (+ configured seeder) as the Database step, but from
+CLI. This is the timeout-safe path: browsers and shared hosting often kill
+long HTTP requests, while CLI has no request timeout. The web step also lifts
+its own PHP time limit via `set_time_limit(0)`, but for huge seeds prefer:
+
+```bash
+php artisan wizard:migrate --fresh
+```

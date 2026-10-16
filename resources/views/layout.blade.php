@@ -45,6 +45,9 @@
     @if(session('status'))
     <div class="mb-4 text-sm bg-green-50 text-green-800 p-3 rounded-lg">{{ session('status') }}</div>
     @endif
+    @if(session('error'))
+    <div class="mb-4 text-sm bg-red-50 text-red-800 p-3 rounded-lg">{{ session('error') }}</div>
+    @endif
     @yield('content')
   </div>
   <p class="text-center text-xs text-slate-400 mt-4">Delete or protect /install after <code>storage/installer.lock</code> exists.</p>
